@@ -7,27 +7,25 @@ import { getDb } from "@/lib/db";
 
 export async function GET() {
   const db = getDb();
-  const deliveries = db
-    .prepare(
-      `SELECT d.*, b.name AS branch_name
-         FROM deliveries d
-         JOIN branches b ON b.id = d.branch_id
-         ORDER BY d.delivered_at DESC, d.id DESC`,
-    )
-    .all() as any[];
+  const deliveriesResult = await db.execute(
+    `SELECT d.*, b.name AS branch_name
+       FROM deliveries d
+       JOIN branches b ON b.id = d.branch_id
+       ORDER BY d.delivered_at DESC, d.id DESC`
+  );
 
-  // Fetch items for each delivery
-  const result = deliveries.map((d) => {
-    const items = db
-      .prepare(
-        `SELECT di.flavour_id, f.name as flavour_name, f.unit, di.quantity
-         FROM delivery_items di
-         JOIN flavours f ON f.id = di.flavour_id
-         WHERE di.delivery_id = ?`
-      )
-      .all(d.id) as any[];
-    return { ...d, items };
-  });
+  // Fetch items for each delivery (sequential — small N, fine for now)
+  const result = [];
+  for (const d of deliveriesResult.rows) {
+    const itemsResult = await db.execute({
+      sql: `SELECT di.flavour_id, f.name as flavour_name, f.unit, di.quantity
+              FROM delivery_items di
+              JOIN flavours f ON f.id = di.flavour_id
+             WHERE di.delivery_id = ?`,
+      args: [d.id as number],
+    });
+    result.push({ ...d, items: itemsResult.rows });
+  }
 
   return NextResponse.json(result);
 }
@@ -45,30 +43,33 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = db.transaction(() => {
-      const deliveryStmt = db.prepare(
-        `INSERT INTO deliveries (branch_id, delivered_at, notes)
-         VALUES (?, ?, ?)`
-      );
-      const deliveryResult = deliveryStmt.run(
-        branch_id,
-        delivered_at || new Date().toISOString().split("T")[0],
-        notes || null
-      );
-      const deliveryId = (deliveryResult as any).lastInsertRowid;
+    const tx = await db.transaction("write");
+    try {
+      const deliveryResult = await tx.execute({
+        sql: `INSERT INTO deliveries (branch_id, delivered_at, notes)
+              VALUES (?, ?, ?)`,
+        args: [
+          branch_id,
+          delivered_at || new Date().toISOString().split("T")[0],
+          notes || null,
+        ],
+      });
+      const deliveryId = Number(deliveryResult.lastInsertRowid);
 
-      const itemStmt = db.prepare(
-        `INSERT INTO delivery_items (delivery_id, flavour_id, quantity)
-         VALUES (?, ?, ?)`
-      );
       for (const item of items) {
-        itemStmt.run(deliveryId, item.flavour_id, item.quantity);
+        await tx.execute({
+          sql: `INSERT INTO delivery_items (delivery_id, flavour_id, quantity)
+                VALUES (?, ?, ?)`,
+          args: [deliveryId, item.flavour_id, item.quantity],
+        });
       }
 
-      return deliveryId;
-    })();
-
-    return NextResponse.json({ id: result }, { status: 201 });
+      await tx.commit();
+      return NextResponse.json({ id: deliveryId }, { status: 201 });
+    } catch (e) {
+      await tx.rollback();
+      throw e;
+    }
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Failed to create delivery" }, { status: 500 });
@@ -85,7 +86,10 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "id required" }, { status: 400 });
     }
 
-    db.prepare("DELETE FROM deliveries WHERE id = ?").run(id);
+    await db.execute({
+      sql: "DELETE FROM deliveries WHERE id = ?",
+      args: [id],
+    });
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error(err);

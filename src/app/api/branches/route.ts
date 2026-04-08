@@ -8,8 +8,8 @@ import { getDb } from "@/lib/db";
 
 export async function GET() {
   const db = getDb();
-  const rows = db.prepare("SELECT * FROM branches ORDER BY active DESC, name ASC").all();
-  return NextResponse.json(rows);
+  const result = await db.execute("SELECT * FROM branches ORDER BY active DESC, name ASC");
+  return NextResponse.json(result.rows);
 }
 
 export async function POST(req: Request) {
@@ -22,15 +22,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "name is required" }, { status: 400 });
     }
 
-    const stmt = db.prepare(
-      `INSERT INTO branches (name, address, contact_name, contact_phone, notes)
-       VALUES (?, ?, ?, ?, ?)`
-    );
-    stmt.run(name.trim(), address || null, contact_name || null, contact_phone || null, notes || null);
+    const insertResult = await db.execute({
+      sql: `INSERT INTO branches (name, address, contact_name, contact_phone, notes)
+            VALUES (?, ?, ?, ?, ?)`,
+      args: [name.trim(), address || null, contact_name || null, contact_phone || null, notes || null],
+    });
 
-    const row = db
-      .prepare("SELECT * FROM branches WHERE name = ? ORDER BY id DESC LIMIT 1")
-      .get(name.trim());
+    const id = Number(insertResult.lastInsertRowid);
+    const row = (await db.execute({
+      sql: "SELECT * FROM branches WHERE id = ?",
+      args: [id],
+    })).rows[0];
+
     return NextResponse.json(row, { status: 201 });
   } catch (err) {
     console.error(err);
@@ -54,42 +57,27 @@ export async function PATCH(req: Request) {
     const updates: string[] = [];
     const values: any[] = [];
 
-    if (name !== undefined) {
-      updates.push("name = ?");
-      values.push(name);
-    }
-    if (address !== undefined) {
-      updates.push("address = ?");
-      values.push(address);
-    }
-    if (contact_name !== undefined) {
-      updates.push("contact_name = ?");
-      values.push(contact_name);
-    }
-    if (contact_phone !== undefined) {
-      updates.push("contact_phone = ?");
-      values.push(contact_phone);
-    }
-    if (notes !== undefined) {
-      updates.push("notes = ?");
-      values.push(notes);
-    }
-    if (active !== undefined) {
-      updates.push("active = ?");
-      values.push(active ? 1 : 0);
-    }
+    if (name !== undefined) { updates.push("name = ?"); values.push(name); }
+    if (address !== undefined) { updates.push("address = ?"); values.push(address); }
+    if (contact_name !== undefined) { updates.push("contact_name = ?"); values.push(contact_name); }
+    if (contact_phone !== undefined) { updates.push("contact_phone = ?"); values.push(contact_phone); }
+    if (notes !== undefined) { updates.push("notes = ?"); values.push(notes); }
+    if (active !== undefined) { updates.push("active = ?"); values.push(active ? 1 : 0); }
 
     if (updates.length === 0) {
       return NextResponse.json({ error: "no fields to update" }, { status: 400 });
     }
 
     values.push(id);
-    const stmt = db.prepare(
-      `UPDATE branches SET ${updates.join(", ")} WHERE id = ?`
-    );
-    stmt.run(...values);
+    await db.execute({
+      sql: `UPDATE branches SET ${updates.join(", ")} WHERE id = ?`,
+      args: values,
+    });
 
-    const row = db.prepare("SELECT * FROM branches WHERE id = ?").get(id);
+    const row = (await db.execute({
+      sql: "SELECT * FROM branches WHERE id = ?",
+      args: [id],
+    })).rows[0];
     return NextResponse.json(row);
   } catch (err) {
     console.error(err);
@@ -107,7 +95,10 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "id required" }, { status: 400 });
     }
 
-    db.prepare("UPDATE branches SET active = 0 WHERE id = ?").run(id);
+    await db.execute({
+      sql: "UPDATE branches SET active = 0 WHERE id = ?",
+      args: [id],
+    });
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error(err);

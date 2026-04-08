@@ -15,28 +15,26 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const branchId = url.searchParams.get("branch_id");
 
-  const rows = (branchId
-    ? db
-        .prepare(
-          `SELECT * FROM stock_checks WHERE branch_id = ? ORDER BY checked_at DESC, id DESC`,
-        )
-        .all(branchId)
-    : db
-        .prepare(`SELECT * FROM stock_checks ORDER BY checked_at DESC, id DESC`)
-        .all()) as any[];
+  const checksResult = branchId
+    ? await db.execute({
+        sql: `SELECT * FROM stock_checks WHERE branch_id = ? ORDER BY checked_at DESC, id DESC`,
+        args: [branchId],
+      })
+    : await db.execute(
+        `SELECT * FROM stock_checks ORDER BY checked_at DESC, id DESC`
+      );
 
-  // Fetch items for each check
-  const result = rows.map((check) => {
-    const items = db
-      .prepare(
-        `SELECT sci.flavour_id, f.name as flavour_name, f.unit, sci.quantity_remaining
-         FROM stock_check_items sci
-         JOIN flavours f ON f.id = sci.flavour_id
-         WHERE sci.stock_check_id = ?`
-      )
-      .all(check.id) as any[];
-    return { ...check, items };
-  });
+  const result = [];
+  for (const check of checksResult.rows) {
+    const itemsResult = await db.execute({
+      sql: `SELECT sci.flavour_id, f.name as flavour_name, f.unit, sci.quantity_remaining
+              FROM stock_check_items sci
+              JOIN flavours f ON f.id = sci.flavour_id
+             WHERE sci.stock_check_id = ?`,
+      args: [check.id as number],
+    });
+    result.push({ ...check, items: itemsResult.rows });
+  }
 
   return NextResponse.json(result);
 }
@@ -54,30 +52,33 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = db.transaction(() => {
-      const checkStmt = db.prepare(
-        `INSERT INTO stock_checks (branch_id, checked_at, notes)
-         VALUES (?, ?, ?)`
-      );
-      const checkResult = checkStmt.run(
-        branch_id,
-        checked_at || new Date().toISOString().split("T")[0],
-        notes || null
-      );
-      const checkId = (checkResult as any).lastInsertRowid;
+    const tx = await db.transaction("write");
+    try {
+      const checkResult = await tx.execute({
+        sql: `INSERT INTO stock_checks (branch_id, checked_at, notes)
+              VALUES (?, ?, ?)`,
+        args: [
+          branch_id,
+          checked_at || new Date().toISOString().split("T")[0],
+          notes || null,
+        ],
+      });
+      const checkId = Number(checkResult.lastInsertRowid);
 
-      const itemStmt = db.prepare(
-        `INSERT INTO stock_check_items (stock_check_id, flavour_id, quantity_remaining)
-         VALUES (?, ?, ?)`
-      );
       for (const item of items) {
-        itemStmt.run(checkId, item.flavour_id, item.quantity_remaining);
+        await tx.execute({
+          sql: `INSERT INTO stock_check_items (stock_check_id, flavour_id, quantity_remaining)
+                VALUES (?, ?, ?)`,
+          args: [checkId, item.flavour_id, item.quantity_remaining],
+        });
       }
 
-      return checkId;
-    })();
-
-    return NextResponse.json({ id: result }, { status: 201 });
+      await tx.commit();
+      return NextResponse.json({ id: checkId }, { status: 201 });
+    } catch (e) {
+      await tx.rollback();
+      throw e;
+    }
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Failed to create stock check" }, { status: 500 });
@@ -94,7 +95,10 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "id required" }, { status: 400 });
     }
 
-    db.prepare("DELETE FROM stock_checks WHERE id = ?").run(id);
+    await db.execute({
+      sql: "DELETE FROM stock_checks WHERE id = ?",
+      args: [id],
+    });
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error(err);
