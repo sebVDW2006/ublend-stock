@@ -6,10 +6,15 @@ export default {
     extend: {
       colors: {
         brand: {
-          DEFAULT: "#7c3aed",
-          dark: "#5b21b6",
-          light: "#a78bfa",
+          DEFAULT: "#034638",
+          dark: "#081e1c",
+          light: "#557570",
+          muted: "#8da39f",
+          bg: "#e8eceb",
         },
+      },
+      fontFamily: {
+        serif: ['"Playfair Display"', "Georgia", "serif"],
       },
     },
   },

@@ -15,12 +15,22 @@ export async function GET(req: Request) {
   switch (view) {
     case "stock": {
       const deliveriesResult = await db.execute(
-        `SELECT b.id as branch_id, b.name as branch_name,
+        `WITH bf AS (
+           SELECT d.branch_id, di.flavour_id
+             FROM deliveries d
+             JOIN delivery_items di ON di.delivery_id = d.id
+           UNION
+           SELECT sc.branch_id, sci.flavour_id
+             FROM stock_checks sc
+             JOIN stock_check_items sci ON sci.stock_check_id = sc.id
+         )
+         SELECT b.id as branch_id, b.name as branch_name,
                 f.id as flavour_id, f.name as flavour_name, f.unit,
                 f.low_stock_threshold,
                 COALESCE(SUM(di.quantity), 0) as delivered_total
-           FROM branches b
-           CROSS JOIN flavours f
+           FROM bf
+           JOIN branches b ON b.id = bf.branch_id
+           JOIN flavours f ON f.id = bf.flavour_id
            LEFT JOIN deliveries d ON d.branch_id = b.id
            LEFT JOIN delivery_items di ON di.delivery_id = d.id AND di.flavour_id = f.id
           WHERE b.active = 1 AND f.active = 1

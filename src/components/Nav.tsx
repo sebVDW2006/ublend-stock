@@ -12,17 +12,17 @@ const links = [
 
 export function Nav() {
   return (
-    <header className="bg-gradient-to-r from-brand via-purple-600 to-brand-dark text-white shadow-lg">
+    <header className="bg-brand text-white shadow-md">
       <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between gap-8">
-        <Link href="/" className="font-bold text-2xl tracking-tight hover:opacity-80 transition">
-          📦 uBlend Stock
+        <Link href="/" className="font-serif font-bold text-3xl tracking-tight hover:opacity-80 transition">
+          uBlend.
         </Link>
         <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="opacity-90 hover:opacity-100 hover:scale-105 transition-transform"
+              className="opacity-90 hover:opacity-100 transition"
             >
               {l.label}
             </Link>

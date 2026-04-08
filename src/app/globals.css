@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,20 +13,24 @@ body {
 }
 
 body {
-  @apply bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 text-slate-900 antialiased;
+  @apply bg-brand-bg text-brand-dark antialiased;
+}
+
+h1, h2, h3 {
+  @apply font-serif;
 }
 
 @layer components {
   .btn-primary {
-    @apply px-4 py-2 bg-gradient-to-r from-brand to-brand-dark text-white font-medium rounded-lg hover:shadow-lg hover:scale-105 transition-all;
+    @apply px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-dark transition-all;
   }
   .btn-secondary {
-    @apply px-4 py-2 bg-slate-200 text-slate-800 font-medium rounded-lg hover:bg-slate-300 transition-all;
+    @apply px-4 py-2 bg-brand-muted text-white font-medium rounded-lg hover:bg-brand-light transition-all;
   }
   .card {
-    @apply bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow;
+    @apply bg-white rounded-xl border border-brand-muted/30 shadow-sm hover:shadow-md transition-shadow;
   }
   .input-field {
-    @apply w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent;
+    @apply w-full px-3 py-2 border border-brand-muted/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent;
   }
 }
