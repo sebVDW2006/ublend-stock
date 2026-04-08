@@ -17,6 +17,7 @@ type BranchStockRow = {
 
 export default function DashboardPage() {
   const [data, setData] = useState<BranchStockRow[]>([]);
+  const [activeBranchCount, setActiveBranchCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,9 +27,14 @@ export default function DashboardPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/reports?view=stock");
-      const rows = await res.json();
+      const [stockRes, branchRes] = await Promise.all([
+        fetch("/api/reports?view=stock"),
+        fetch("/api/branches"),
+      ]);
+      const rows = await stockRes.json();
+      const branches = await branchRes.json();
       setData(rows);
+      setActiveBranchCount(branches.filter((b: { active: number }) => b.active === 1).length);
     } catch (err) {
       console.error(err);
     }
@@ -49,7 +55,7 @@ export default function DashboardPage() {
     {} as Record<number, { branch_name: string; rows: BranchStockRow[] }>
   );
 
-  const totalBranches = Object.keys(groupedByBranch).length;
+  const totalBranches = activeBranchCount;
   const totalLow = data.filter((r) => r.is_low).length;
 
   if (loading) {
