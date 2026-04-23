@@ -16,40 +16,40 @@ export default function FlavoursPage() {
   });
 
   useEffect(() => {
-    fetchFlavours();
+    void fetchFlavours();
   }, []);
 
   const fetchFlavours = async () => {
     setLoading(true);
-    const res = await fetch("/api/flavours");
-    const data = await res.json();
-    setFlavours(data);
+    const response = await fetch("/api/flavours");
+    const nextFlavours = await response.json();
+    setFlavours(nextFlavours);
     setLoading(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
     try {
       if (editingId) {
-        const res = await fetch(`/api/flavours?id=${editingId}`, {
+        const response = await fetch(`/api/flavours?id=${editingId}`, {
           method: "PATCH",
           body: JSON.stringify(form),
         });
-        if (!res.ok) throw new Error("Update failed");
+        if (!response.ok) throw new Error("Update failed");
       } else {
-        const res = await fetch("/api/flavours", {
+        const response = await fetch("/api/flavours", {
           method: "POST",
           body: JSON.stringify(form),
         });
-        if (!res.ok) throw new Error("Create failed");
+        if (!response.ok) throw new Error("Create failed");
       }
 
       setForm({ name: "", sku: "", unit: "units", low_stock_threshold: 10, notes: "" });
       setEditingId(null);
       await fetchFlavours();
-    } catch (err) {
-      alert("Error: " + (err instanceof Error ? err.message : "unknown"));
+    } catch (error) {
+      alert("Error: " + (error instanceof Error ? error.message : "unknown"));
     }
   };
 
@@ -66,12 +66,13 @@ export default function FlavoursPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm("Archive this flavour?")) return;
+
     try {
-      const res = await fetch(`/api/flavours?id=${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
+      const response = await fetch(`/api/flavours?id=${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Delete failed");
       await fetchFlavours();
-    } catch (err) {
-      alert("Error: " + (err instanceof Error ? err.message : "unknown"));
+    } catch (error) {
+      alert("Error: " + (error instanceof Error ? error.message : "unknown"));
     }
   };
 
@@ -80,139 +81,167 @@ export default function FlavoursPage() {
     setEditingId(null);
   };
 
+  const activeFlavours = flavours.filter((flavour) => flavour.active === 1);
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold text-brand mb-2">🍓 Flavours</h1>
-        <p className="text-slate-600">Manage your product range</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="card p-6 space-y-4">
-        <h2 className="text-xl font-bold text-slate-800">
-          {editingId ? "✏️ Edit Flavour" : "➕ New Flavour"}
-        </h2>
-
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">Name *</label>
-          <input
-            type="text"
-            required
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="input-field"
-            placeholder="e.g., Mango Smoothie"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">SKU</label>
-            <input
-              type="text"
-              value={form.sku}
-              onChange={(e) => setForm({ ...form, sku: e.target.value })}
-              className="input-field"
-              placeholder="Optional"
-            />
+    <div className="space-y-8 pb-8">
+      <section className="hero-shell">
+        <div className="crm-card p-7 sm:p-9">
+          <div className="flex flex-wrap gap-2">
+            <span className="data-chip">Flavours</span>
+            <span className="data-chip data-chip-accent">Range setup</span>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Unit</label>
-            <input
-              type="text"
-              value={form.unit}
-              onChange={(e) => setForm({ ...form, unit: e.target.value })}
-              className="input-field"
-              placeholder="bottles, litres..."
-            />
+
+          <h1 className="section-title mt-5 max-w-4xl">Define the range once, use it everywhere.</h1>
+          <p className="section-copy mt-5 max-w-2xl">
+            Each flavour becomes part of production, deliveries, checks, and reports. Keep the naming and thresholds
+            clean so the whole stock system stays consistent.
+          </p>
+
+          <div className="hero-stat-grid mt-8">
+            <div className="stat-tile">
+              <div className="stat-label">Active flavours</div>
+              <div className="stat-value">{activeFlavours.length}</div>
+            </div>
+            <div className="stat-tile">
+              <div className="stat-label">Archived</div>
+              <div className="stat-value">{flavours.length - activeFlavours.length}</div>
+            </div>
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">Low Stock Alert Threshold</label>
-          <input
-            type="number"
-            min="0"
-            value={form.low_stock_threshold}
-            onChange={(e) =>
-              setForm({ ...form, low_stock_threshold: parseInt(e.target.value) || 0 })
-            }
-            className="input-field"
-            placeholder="10"
-          />
+        <div className="photo-card min-h-[360px] sm:min-h-[420px]" style={{ backgroundImage: "url('/imagery/strawberry-slices.jpeg')" }}>
+          <div className="absolute inset-x-0 bottom-0 z-10 p-6">
+            <span className="data-chip data-chip-accent">Fruit-first identity</span>
+          </div>
         </div>
+      </section>
 
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">Notes</label>
-          <textarea
-            value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            className="input-field"
-            rows={2}
-            placeholder="Internal notes..."
-          />
-        </div>
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+        <form onSubmit={handleSubmit} className="crm-card p-6 sm:p-8 space-y-5">
+          <div>
+            <div className="eyebrow">Flavour profile</div>
+            <h2 className="section-subtitle mt-3">{editingId ? "Edit flavour" : "Add flavour"}</h2>
+          </div>
 
-        <div className="flex gap-2 pt-2">
-          <button
-            type="submit"
-            className="btn-primary"
-          >
-            {editingId ? "💾 Update" : "✨ Create Flavour"}
-          </button>
-          {editingId && (
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="btn-secondary"
-            >
-              Cancel
+          <div>
+            <label>Name</label>
+            <input
+              type="text"
+              required
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              placeholder="Flavour name"
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label>SKU</label>
+              <input
+                type="text"
+                value={form.sku}
+                onChange={(event) => setForm({ ...form, sku: event.target.value })}
+                placeholder="Optional code"
+              />
+            </div>
+            <div>
+              <label>Unit</label>
+              <input
+                type="text"
+                value={form.unit}
+                onChange={(event) => setForm({ ...form, unit: event.target.value })}
+                placeholder="bottles, cases, litres"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label>Low stock threshold</label>
+            <input
+              type="number"
+              min="0"
+              value={form.low_stock_threshold}
+              onChange={(event) =>
+                setForm({ ...form, low_stock_threshold: Number.parseInt(event.target.value, 10) || 0 })
+              }
+            />
+          </div>
+
+          <div>
+            <label>Notes</label>
+            <textarea
+              value={form.notes}
+              onChange={(event) => setForm({ ...form, notes: event.target.value })}
+              placeholder="Internal note for this flavour"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button type="submit" className="btn-primary">
+              {editingId ? "Update flavour" : "Create flavour"}
             </button>
+            {editingId ? (
+              <button type="button" onClick={handleCancel} className="btn-secondary">
+                Cancel
+              </button>
+            ) : null}
+          </div>
+        </form>
+
+        <div className="crm-card p-6 sm:p-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div className="eyebrow">Flavour list</div>
+              <h2 className="section-subtitle mt-3">Current catalogue</h2>
+            </div>
+            <span className="data-chip data-chip-blue">{loading ? "Loading" : `${activeFlavours.length} active`}</span>
+          </div>
+
+          {loading ? (
+            <div className="empty-state mt-6">Loading flavours…</div>
+          ) : activeFlavours.length === 0 ? (
+            <div className="empty-state mt-6">No flavours yet. Create the first one on the left.</div>
+          ) : (
+            <div className="mt-6 space-y-3">
+              {activeFlavours
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((flavour) => (
+                  <div key={flavour.id} className="list-card">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="text-lg font-semibold tracking-[-0.05em]">{flavour.name}</div>
+                        <div className="mt-1 text-sm text-[rgba(16,19,17,0.56)]">{flavour.sku || "No SKU"} </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={() => handleEdit(flavour)} className="btn-secondary">
+                          Edit
+                        </button>
+                        <button type="button" onClick={() => handleDelete(flavour.id)} className="btn-danger">
+                          Archive
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="soft-panel p-4">
+                        <div className="eyebrow">Unit</div>
+                        <p className="mt-2 text-sm leading-7 text-[rgba(16,19,17,0.62)]">{flavour.unit}</p>
+                      </div>
+                      <div className="soft-panel p-4">
+                        <div className="eyebrow">Low stock threshold</div>
+                        <p className="mt-2 text-sm leading-7 text-[rgba(16,19,17,0.62)]">{flavour.low_stock_threshold}</p>
+                      </div>
+                    </div>
+
+                    {flavour.notes ? <p className="mt-4 text-sm leading-7 text-[rgba(16,19,17,0.58)]">{flavour.notes}</p> : null}
+                  </div>
+                ))}
+            </div>
           )}
         </div>
-      </form>
-
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-4">Your Flavours</h2>
-        {loading ? (
-          <p className="text-slate-500 text-center py-8">Loading...</p>
-        ) : flavours.length === 0 ? (
-          <div className="card p-8 text-center text-slate-600">
-            <p className="text-lg">No flavours yet. Create one above! 👆</p>
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {flavours
-              .filter((f) => f.active === 1)
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((flavour) => (
-                <div key={flavour.id} className="card p-4 flex justify-between items-center hover:shadow-md transition-shadow">
-                  <div className="flex-1">
-                    <div className="font-bold text-lg text-slate-800">{flavour.name}</div>
-                    <div className="text-sm text-slate-600 mt-1">
-                      {flavour.sku && <span className="mr-3">SKU: {flavour.sku}</span>}
-                      <span className="mr-3">Unit: <strong>{flavour.unit}</strong></span>
-                      <span>Alert at: <strong>{flavour.low_stock_threshold}</strong></span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(flavour)}
-                      className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(flavour.id)}
-                      className="px-3 py-1 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-                    >
-                      Archive
-                    </button>
-                  </div>
-                </div>
-              ))}
-          </div>
-        )}
-      </div>
+      </section>
     </div>
   );
 }

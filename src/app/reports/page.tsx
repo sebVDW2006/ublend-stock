@@ -33,36 +33,30 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, []);
 
   const fetchData = async () => {
     setLoading(true);
+
     try {
-      const [topRes, monthlyRes, distRes] = await Promise.all([
+      const [topRes, monthlyRes, distributedRes] = await Promise.all([
         fetch("/api/reports?view=top&period=90"),
         fetch("/api/reports?view=monthly"),
         fetch("/api/reports?view=distributed"),
       ]);
+
       setTopFlavours(await topRes.json());
       setMonthlyData(await monthlyRes.json());
-      setDistributed(await distRes.json());
-    } catch (err) {
-      console.error(err);
+      setDistributed(await distributedRes.json());
+    } catch (error) {
+      console.error(error);
     }
+
     setLoading(false);
   };
 
-  const maxSold = Math.max(1, ...topFlavours.map((f) => f.sold));
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-semibold">Reports</h1>
-        <p className="text-slate-500">Loading...</p>
-      </div>
-    );
-  }
+  const maxSold = Math.max(1, ...topFlavours.map((flavour) => flavour.sold));
 
   const groupedByMonth = monthlyData.reduce(
     (acc, row) => {
@@ -88,102 +82,163 @@ export default function ReportsPage() {
   );
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-2xl font-semibold">Reports</h1>
+    <div className="space-y-8 pb-8">
+      <section className="hero-shell">
+        <div className="crm-card p-7 sm:p-9">
+          <div className="flex flex-wrap gap-2">
+            <span className="data-chip">Reports</span>
+            <span className="data-chip data-chip-accent">Movement view</span>
+          </div>
 
-      {/* Top flavours */}
-      <div className="bg-white p-6 rounded border border-slate-200">
-        <h2 className="font-semibold text-lg mb-4">Top Flavours (Last 90 Days)</h2>
-        {topFlavours.length === 0 ? (
-          <p className="text-slate-500">No data yet.</p>
-        ) : (
-          <div className="space-y-3">
-            {topFlavours.map((flavour) => (
-              <div key={flavour.flavour_id}>
-                <div className="flex justify-between items-baseline mb-1">
-                  <div className="font-medium">{flavour.flavour_name}</div>
-                  <div className="text-sm text-slate-600">
-                    {flavour.sold} units sold / {flavour.delivered} delivered
+          <h1 className="section-title mt-5 max-w-4xl">Read demand without digging through noise.</h1>
+          <p className="section-copy mt-5 max-w-2xl">
+            The reporting layer stays minimal: top performers, monthly movement, and total distribution by branch.
+          </p>
+
+          <div className="hero-stat-grid mt-8">
+            <div className="stat-tile">
+              <div className="stat-label">Top flavours</div>
+              <div className="stat-value">{topFlavours.length}</div>
+            </div>
+            <div className="stat-tile">
+              <div className="stat-label">Tracked months</div>
+              <div className="stat-value">{Object.keys(groupedByMonth).length}</div>
+            </div>
+            <div className="stat-tile">
+              <div className="stat-label">Reported branches</div>
+              <div className="stat-value">{Object.keys(groupedByBranch).length}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="photo-card min-h-[360px] sm:min-h-[420px]" style={{ backgroundImage: "url('/imagery/berries-dark.jpeg')" }}>
+          <div className="absolute inset-x-0 bottom-0 z-10 p-6">
+            <span className="data-chip data-chip-blue">Clear movement patterns</span>
+          </div>
+        </div>
+      </section>
+
+      {loading ? (
+        <div className="empty-state">Loading reports…</div>
+      ) : (
+        <div className="space-y-4">
+          <section className="crm-card p-6 sm:p-8">
+            <div className="eyebrow">Top flavours</div>
+            <h2 className="section-subtitle mt-3">Best sellers in the last 90 days</h2>
+
+            {topFlavours.length === 0 ? (
+              <div className="empty-state mt-6">No report data yet.</div>
+            ) : (
+              <div className="mt-6 space-y-4">
+                {topFlavours.map((flavour) => (
+                  <div key={flavour.flavour_id} className="list-card">
+                    <div className="flex flex-wrap items-end justify-between gap-3">
+                      <div>
+                        <div className="text-lg font-semibold tracking-[-0.05em]">{flavour.flavour_name}</div>
+                        <div className="mt-1 text-sm text-[rgba(16,19,17,0.56)]">
+                          {flavour.sold} sold from {flavour.delivered} delivered
+                        </div>
+                      </div>
+                      <span className="data-chip data-chip-accent">{Math.round((flavour.sold / Math.max(1, flavour.delivered)) * 100)}% sold</span>
+                    </div>
+
+                    <div className="mt-4 h-3 overflow-hidden rounded-full bg-[rgba(16,19,17,0.08)]">
+                      <div
+                        className="h-full rounded-full bg-[linear-gradient(90deg,#d8ff54_0%,#ef5a73_100%)]"
+                        style={{ width: `${(flavour.sold / maxSold) * 100}%` }}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="w-full bg-slate-200 rounded h-4 overflow-hidden">
-                  <div
-                    className="bg-brand h-full"
-                    style={{
-                      width: `${(flavour.sold / maxSold) * 100}%`,
-                    }}
-                  />
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            )}
+          </section>
 
-      {/* Monthly sell-through */}
-      <div className="bg-white p-6 rounded border border-slate-200">
-        <h2 className="font-semibold text-lg mb-4">Monthly Deliveries</h2>
-        {Object.keys(groupedByMonth).length === 0 ? (
-          <p className="text-slate-500">No data yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {Object.entries(groupedByMonth)
-              .sort(([aMonth], [bMonth]) => bMonth.localeCompare(aMonth))
-              .map(([month, rows]) => (
-                <div key={month}>
-                  <div className="font-medium mb-2 text-slate-700">{month}</div>
-                  <table className="w-full text-sm border-collapse">
-                    <tbody>
-                      {rows
-                        .sort((a, b) => a.flavour_name.localeCompare(b.flavour_name))
-                        .map((row, idx) => (
-                          <tr key={idx} className="border-b border-slate-200">
-                            <td className="px-2 py-1">{row.flavour_name}</td>
-                            <td className="px-2 py-1 text-right">
-                              {row.delivered} delivered
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
-          </div>
-        )}
-      </div>
+          <section className="grid gap-4 lg:grid-cols-2">
+            <div className="crm-card p-6 sm:p-8">
+              <div className="eyebrow">Monthly movement</div>
+              <h2 className="section-subtitle mt-3">Deliveries by month</h2>
 
-      {/* Total distributed by branch */}
-      <div className="bg-white p-6 rounded border border-slate-200">
-        <h2 className="font-semibold text-lg mb-4">Total Distributed by Branch</h2>
-        {Object.keys(groupedByBranch).length === 0 ? (
-          <p className="text-slate-500">No data yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {Object.entries(groupedByBranch)
-              .sort(([, a], [, b]) => a.branch_name.localeCompare(b.branch_name))
-              .map(([branchId, { branch_name, rows }]) => (
-                <div key={branchId}>
-                  <div className="font-medium mb-2 text-slate-700">{branch_name}</div>
-                  <table className="w-full text-sm border-collapse">
-                    <tbody>
-                      {rows
-                        .filter((r) => r.total_delivered > 0)
-                        .sort((a, b) => a.flavour_name.localeCompare(b.flavour_name))
-                        .map((row, idx) => (
-                          <tr key={idx} className="border-b border-slate-200">
-                            <td className="px-2 py-1">{row.flavour_name}</td>
-                            <td className="px-2 py-1 text-right">
-                              {row.total_delivered} {row.unit}
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
+              {Object.keys(groupedByMonth).length === 0 ? (
+                <div className="empty-state mt-6">No monthly delivery data yet.</div>
+              ) : (
+                <div className="mt-6 space-y-4">
+                  {Object.entries(groupedByMonth)
+                    .sort(([aMonth], [bMonth]) => bMonth.localeCompare(aMonth))
+                    .map(([month, rows]) => (
+                      <div key={month} className="list-card">
+                        <div className="text-lg font-semibold tracking-[-0.05em]">{month}</div>
+                        <div className="mt-4 overflow-x-auto soft-scrollbar">
+                          <table className="w-full min-w-[340px]">
+                            <thead className="table-head">
+                              <tr>
+                                <th className="text-left">Flavour</th>
+                                <th className="text-right">Delivered</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows
+                                .sort((a, b) => a.flavour_name.localeCompare(b.flavour_name))
+                                .map((row, index) => (
+                                  <tr key={`${month}-${index}`} className="table-row">
+                                    <td>{row.flavour_name}</td>
+                                    <td className="text-right">{row.delivered}</td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
                 </div>
-              ))}
-          </div>
-        )}
-      </div>
+              )}
+            </div>
+
+            <div className="crm-card p-6 sm:p-8">
+              <div className="eyebrow">Branch totals</div>
+              <h2 className="section-subtitle mt-3">Distribution by branch</h2>
+
+              {Object.keys(groupedByBranch).length === 0 ? (
+                <div className="empty-state mt-6">No branch distribution data yet.</div>
+              ) : (
+                <div className="mt-6 space-y-4">
+                  {Object.entries(groupedByBranch)
+                    .sort(([, a], [, b]) => a.branch_name.localeCompare(b.branch_name))
+                    .map(([branchId, { branch_name, rows }]) => (
+                      <div key={branchId} className="list-card">
+                        <div className="text-lg font-semibold tracking-[-0.05em]">{branch_name}</div>
+
+                        <div className="mt-4 overflow-x-auto soft-scrollbar">
+                          <table className="w-full min-w-[340px]">
+                            <thead className="table-head">
+                              <tr>
+                                <th className="text-left">Flavour</th>
+                                <th className="text-right">Total delivered</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows
+                                .filter((row) => row.total_delivered > 0)
+                                .sort((a, b) => a.flavour_name.localeCompare(b.flavour_name))
+                                .map((row, index) => (
+                                  <tr key={`${branchId}-${index}`} className="table-row">
+                                    <td>{row.flavour_name}</td>
+                                    <td className="text-right">
+                                      {row.total_delivered} {row.unit}
+                                    </td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

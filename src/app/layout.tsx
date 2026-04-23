@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#034638",
+  themeColor: "#efefec",
 };
 
 export default function RootLayout({
@@ -32,11 +32,9 @@ export default function RootLayout({
       </head>
       <body>
         <ServiceWorkerRegister />
-        <div className="min-h-screen flex flex-col">
+        <div className="site-shell flex min-h-screen flex-col">
           <Nav />
-          <main className="flex-1 mx-auto w-full max-w-5xl px-4 py-6">
-            {children}
-          </main>
+          <main className="page-wrap flex-1">{children}</main>
         </div>
       </body>
     </html>

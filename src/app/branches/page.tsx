@@ -16,40 +16,40 @@ export default function BranchesPage() {
   });
 
   useEffect(() => {
-    fetchBranches();
+    void fetchBranches();
   }, []);
 
   const fetchBranches = async () => {
     setLoading(true);
-    const res = await fetch("/api/branches");
-    const data = await res.json();
-    setBranches(data);
+    const response = await fetch("/api/branches");
+    const nextBranches = await response.json();
+    setBranches(nextBranches);
     setLoading(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
     try {
       if (editingId) {
-        const res = await fetch(`/api/branches?id=${editingId}`, {
+        const response = await fetch(`/api/branches?id=${editingId}`, {
           method: "PATCH",
           body: JSON.stringify(form),
         });
-        if (!res.ok) throw new Error("Update failed");
+        if (!response.ok) throw new Error("Update failed");
       } else {
-        const res = await fetch("/api/branches", {
+        const response = await fetch("/api/branches", {
           method: "POST",
           body: JSON.stringify(form),
         });
-        if (!res.ok) throw new Error("Create failed");
+        if (!response.ok) throw new Error("Create failed");
       }
 
       setForm({ name: "", address: "", contact_name: "", contact_phone: "", notes: "" });
       setEditingId(null);
       await fetchBranches();
-    } catch (err) {
-      alert("Error: " + (err instanceof Error ? err.message : "unknown"));
+    } catch (error) {
+      alert("Error: " + (error instanceof Error ? error.message : "unknown"));
     }
   };
 
@@ -66,12 +66,13 @@ export default function BranchesPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm("Archive this branch?")) return;
+
     try {
-      const res = await fetch(`/api/branches?id=${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
+      const response = await fetch(`/api/branches?id=${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Delete failed");
       await fetchBranches();
-    } catch (err) {
-      alert("Error: " + (err instanceof Error ? err.message : "unknown"));
+    } catch (error) {
+      alert("Error: " + (error instanceof Error ? error.message : "unknown"));
     }
   };
 
@@ -80,142 +81,165 @@ export default function BranchesPage() {
     setEditingId(null);
   };
 
+  const activeBranches = branches.filter((branch) => branch.active === 1);
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Branches</h1>
+    <div className="space-y-8 pb-8">
+      <section className="hero-shell">
+        <div className="crm-card p-7 sm:p-9">
+          <div className="flex flex-wrap gap-2">
+            <span className="data-chip">Branches</span>
+            <span className="data-chip data-chip-accent">Locations</span>
+          </div>
 
-      <form onSubmit={handleSubmit} className="bg-white p-4 rounded border border-slate-200 space-y-3">
-        <h2 className="font-semibold text-lg">
-          {editingId ? "Edit Branch" : "Add Branch"}
-        </h2>
+          <h1 className="section-title mt-5 max-w-4xl">Keep every branch in one place.</h1>
+          <p className="section-copy mt-5 max-w-2xl">
+            Store the basic branch details here so deliveries, stock checks, and reporting always point to the same
+            live locations.
+          </p>
 
-        <div>
-          <label className="block text-sm font-medium">Name *</label>
-          <input
-            type="text"
-            required
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full px-2 py-1 border border-slate-300 rounded"
-          />
+          <div className="hero-stat-grid mt-8">
+            <div className="stat-tile">
+              <div className="stat-label">Active branches</div>
+              <div className="stat-value">{activeBranches.length}</div>
+            </div>
+            <div className="stat-tile">
+              <div className="stat-label">Archived</div>
+              <div className="stat-value">{branches.length - activeBranches.length}</div>
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium">Address</label>
-          <input
-            type="text"
-            value={form.address}
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
-            className="w-full px-2 py-1 border border-slate-300 rounded"
-          />
+        <div className="photo-card min-h-[360px] sm:min-h-[420px]" style={{ backgroundImage: "url('/imagery/raspberry-stack.jpeg')" }}>
+          <div className="absolute inset-x-0 bottom-0 z-10 p-6">
+            <span className="data-chip">Branch network</span>
+          </div>
         </div>
+      </section>
 
-        <div className="grid grid-cols-2 gap-3">
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <form onSubmit={handleSubmit} className="crm-card p-6 sm:p-8 space-y-5">
           <div>
-            <label className="block text-sm font-medium">Contact Name</label>
+            <div className="eyebrow">Branch profile</div>
+            <h2 className="section-subtitle mt-3">{editingId ? "Edit branch" : "Add branch"}</h2>
+          </div>
+
+          <div>
+            <label>Name</label>
             <input
               type="text"
-              value={form.contact_name}
-              onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
-              className="w-full px-2 py-1 border border-slate-300 rounded"
+              required
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              placeholder="Branch name"
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium">Contact Phone</label>
+            <label>Address</label>
             <input
-              type="tel"
-              value={form.contact_phone}
-              onChange={(e) => setForm({ ...form, contact_phone: e.target.value })}
-              className="w-full px-2 py-1 border border-slate-300 rounded"
+              type="text"
+              value={form.address}
+              onChange={(event) => setForm({ ...form, address: event.target.value })}
+              placeholder="Optional address"
             />
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium">Notes</label>
-          <textarea
-            value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            className="w-full px-2 py-1 border border-slate-300 rounded"
-            rows={2}
-          />
-        </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label>Contact name</label>
+              <input
+                type="text"
+                value={form.contact_name}
+                onChange={(event) => setForm({ ...form, contact_name: event.target.value })}
+                placeholder="Optional contact"
+              />
+            </div>
+            <div>
+              <label>Contact phone</label>
+              <input
+                type="tel"
+                value={form.contact_phone}
+                onChange={(event) => setForm({ ...form, contact_phone: event.target.value })}
+                placeholder="Optional phone"
+              />
+            </div>
+          </div>
 
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            className="px-3 py-1 bg-brand text-white rounded hover:bg-brand-dark"
-          >
-            {editingId ? "Update" : "Create"}
-          </button>
-          {editingId && (
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-3 py-1 bg-slate-300 text-slate-800 rounded hover:bg-slate-400"
-            >
-              Cancel
+          <div>
+            <label>Notes</label>
+            <textarea
+              value={form.notes}
+              onChange={(event) => setForm({ ...form, notes: event.target.value })}
+              placeholder="Internal context for this branch"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button type="submit" className="btn-primary">
+              {editingId ? "Update branch" : "Create branch"}
             </button>
-          )}
-        </div>
-      </form>
+            {editingId ? (
+              <button type="button" onClick={handleCancel} className="btn-secondary">
+                Cancel
+              </button>
+            ) : null}
+          </div>
+        </form>
 
-      <div>
-        <h2 className="font-semibold text-lg mb-3">Branches</h2>
-        {loading ? (
-          <p className="text-slate-500">Loading...</p>
-        ) : branches.length === 0 ? (
-          <p className="text-slate-500">No branches yet.</p>
-        ) : (
-          <table className="w-full border-collapse border border-slate-300">
-            <thead className="bg-slate-100">
-              <tr>
-                <th className="border border-slate-300 px-3 py-2 text-left text-sm font-semibold">
-                  Name
-                </th>
-                <th className="border border-slate-300 px-3 py-2 text-left text-sm font-semibold">
-                  Contact
-                </th>
-                <th className="border border-slate-300 px-3 py-2 text-left text-sm font-semibold">
-                  Phone
-                </th>
-                <th className="border border-slate-300 px-3 py-2 text-center text-sm font-semibold">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {branches
-                .filter((b) => b.active === 1)
-                .map((branch) => (
-                  <tr key={branch.id}>
-                    <td className="border border-slate-300 px-3 py-2">{branch.name}</td>
-                    <td className="border border-slate-300 px-3 py-2 text-sm text-slate-600">
-                      {branch.contact_name || "—"}
-                    </td>
-                    <td className="border border-slate-300 px-3 py-2 text-sm text-slate-600">
-                      {branch.contact_phone || "—"}
-                    </td>
-                    <td className="border border-slate-300 px-3 py-2 text-center space-x-1">
-                      <button
-                        onClick={() => handleEdit(branch)}
-                        className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                      >
+        <div className="crm-card p-6 sm:p-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div className="eyebrow">Branch list</div>
+              <h2 className="section-subtitle mt-3">Current locations</h2>
+            </div>
+            <span className="data-chip data-chip-blue">{loading ? "Loading" : `${activeBranches.length} active`}</span>
+          </div>
+
+          {loading ? (
+            <div className="empty-state mt-6">Loading branches…</div>
+          ) : activeBranches.length === 0 ? (
+            <div className="empty-state mt-6">No branches yet. Add the first one on the left.</div>
+          ) : (
+            <div className="mt-6 space-y-3">
+              {activeBranches.map((branch) => (
+                <div key={branch.id} className="list-card">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-lg font-semibold tracking-[-0.05em]">{branch.name}</div>
+                      {branch.address ? (
+                        <div className="mt-1 text-sm text-[rgba(16,19,17,0.56)]">{branch.address}</div>
+                      ) : null}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={() => handleEdit(branch)} className="btn-secondary">
                         Edit
                       </button>
-                      <button
-                        onClick={() => handleDelete(branch.id)}
-                        className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                      >
+                      <button type="button" onClick={() => handleDelete(branch.id)} className="btn-danger">
                         Archive
                       </button>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="soft-panel p-4">
+                      <div className="eyebrow">Contact</div>
+                      <p className="mt-2 text-sm leading-7 text-[rgba(16,19,17,0.62)]">{branch.contact_name || "No contact saved"}</p>
+                    </div>
+                    <div className="soft-panel p-4">
+                      <div className="eyebrow">Phone</div>
+                      <p className="mt-2 text-sm leading-7 text-[rgba(16,19,17,0.62)]">{branch.contact_phone || "No phone saved"}</p>
+                    </div>
+                  </div>
+
+                  {branch.notes ? <p className="mt-4 text-sm leading-7 text-[rgba(16,19,17,0.58)]">{branch.notes}</p> : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

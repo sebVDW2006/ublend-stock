@@ -19,6 +19,14 @@ type CheckItem = {
   quantity_remaining: string;
 };
 
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export default function StockChecksPage() {
   const [checks, setChecks] = useState<StockCheckWithItems[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -33,7 +41,7 @@ export default function StockChecksPage() {
   });
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, []);
 
   const fetchData = async () => {
@@ -43,271 +51,321 @@ export default function StockChecksPage() {
       fetch("/api/branches"),
       fetch("/api/flavours"),
     ]);
-    const checks = await checkRes.json();
-    const branches = await branchRes.json();
-    const flavours = await flavourRes.json();
-    setChecks(checks);
-    setBranches(branches.filter((b: Branch) => b.active === 1));
-    setFlavours(flavours.filter((f: Flavour) => f.active === 1));
+    const nextChecks = await checkRes.json();
+    const nextBranches = await branchRes.json();
+    const nextFlavours = await flavourRes.json();
+    setChecks(nextChecks);
+    setBranches(nextBranches.filter((branch: Branch) => branch.active === 1));
+    setFlavours(nextFlavours.filter((flavour: Flavour) => flavour.active === 1));
     setLoading(false);
   };
 
   const calculateExpected = async (branchId: string) => {
     if (!branchId) return;
 
-    // For each flavour, calculate expected: last_remaining + delivered_since_last_check
-    const expectedMap: { [key: number]: number } = {};
-
-    // Get all deliveries to this branch
-    const delivRes = await fetch("/api/deliveries");
-    const allDeliveries = await delivRes.json();
+    const expectedMap: Record<number, number> = {};
+    const deliveryRes = await fetch("/api/deliveries");
+    const allDeliveries = await deliveryRes.json();
     const branchDeliveries = allDeliveries
-      .filter((d: any) => d.branch_id === parseInt(branchId))
+      .filter((delivery: any) => delivery.branch_id === Number.parseInt(branchId, 10))
       .sort((a: any, b: any) => new Date(a.delivered_at).getTime() - new Date(b.delivered_at).getTime());
 
-    // Get last stock check for this branch
     const checksRes = await fetch(`/api/stock-checks?branch_id=${branchId}`);
     const branchChecks: StockCheckWithItems[] = await checksRes.json();
 
     for (const flavour of flavours) {
-      let expected = 0;
-
-      // Find last check for this flavour
       let lastRemaining = 0;
-      let lastCheckDate = null;
+      let lastCheckDate: string | null = null;
+
       for (const check of branchChecks) {
-        const itemInCheck = check.items.find((i) => i.flavour_id === flavour.id);
+        const itemInCheck = check.items.find((item) => item.flavour_id === flavour.id);
         if (itemInCheck) {
           lastRemaining = itemInCheck.quantity_remaining;
           lastCheckDate = check.checked_at;
-          break; // latest first
+          break;
         }
       }
 
-      // Add deliveries since last check
       let deliveredSinceLastCheck = 0;
       for (const delivery of branchDeliveries) {
         if (!lastCheckDate || delivery.delivered_at > lastCheckDate) {
-          const item = delivery.items.find((i: any) => i.flavour_id === flavour.id);
+          const item = delivery.items.find((deliveryItem: any) => deliveryItem.flavour_id === flavour.id);
           if (item) deliveredSinceLastCheck += item.quantity;
         }
       }
 
-      expected = lastRemaining + deliveredSinceLastCheck;
-      expectedMap[flavour.id] = expected;
+      expectedMap[flavour.id] = lastRemaining + deliveredSinceLastCheck;
     }
 
-    const newItems = flavours.map((f) => ({
-      flavour_id: f.id,
-      flavour_name: f.name,
-      unit: f.unit,
-      expected: expectedMap[f.id] || 0,
-      quantity_remaining: "",
-    }));
-    setItems(newItems);
+    setItems(
+      flavours.map((flavour) => ({
+        flavour_id: flavour.id,
+        flavour_name: flavour.name,
+        unit: flavour.unit,
+        expected: expectedMap[flavour.id] || 0,
+        quantity_remaining: "",
+      }))
+    );
   };
 
   const handleBranchSelect = (branchId: string) => {
     setSelectedBranch(branchId);
-    setForm({ ...form, branch_id: branchId });
-    calculateExpected(branchId);
+    setForm((current) => ({ ...current, branch_id: branchId }));
+    void calculateExpected(branchId);
   };
 
   const handleItemChange = (flavourId: number, value: string) => {
-    setItems(
-      items.map((item) =>
-        item.flavour_id === flavourId ? { ...item, quantity_remaining: value } : item
-      )
+    setItems((current) =>
+      current.map((item) => (item.flavour_id === flavourId ? { ...item, quantity_remaining: value } : item))
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
     if (!form.branch_id) {
       alert("Branch required");
       return;
     }
 
-    try {
-      const filledItems = items.filter((i) => i.quantity_remaining !== "");
-      if (filledItems.length === 0) {
-        alert("At least one item required");
-        return;
-      }
+    const filledItems = items.filter((item) => item.quantity_remaining !== "");
+    if (filledItems.length === 0) {
+      alert("At least one item required");
+      return;
+    }
 
-      const res = await fetch("/api/stock-checks", {
+    try {
+      const response = await fetch("/api/stock-checks", {
         method: "POST",
         body: JSON.stringify({
-          branch_id: parseInt(form.branch_id),
+          branch_id: Number.parseInt(form.branch_id, 10),
           checked_at: form.checked_at,
           notes: form.notes || null,
           items: filledItems.map((item) => ({
             flavour_id: item.flavour_id,
-            quantity_remaining: parseInt(item.quantity_remaining),
+            quantity_remaining: Number.parseInt(item.quantity_remaining, 10),
           })),
         }),
       });
-      if (!res.ok) throw new Error("Create failed");
+
+      if (!response.ok) throw new Error("Create failed");
 
       setForm({ branch_id: "", checked_at: new Date().toISOString().split("T")[0], notes: "" });
       setSelectedBranch("");
       setItems([]);
       await fetchData();
-    } catch (err) {
-      alert("Error: " + (err instanceof Error ? err.message : "unknown"));
+    } catch (error) {
+      alert("Error: " + (error instanceof Error ? error.message : "unknown"));
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this stock check?")) return;
+
     try {
-      const res = await fetch(`/api/stock-checks?id=${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
+      const response = await fetch(`/api/stock-checks?id=${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Delete failed");
       await fetchData();
-    } catch (err) {
-      alert("Error: " + (err instanceof Error ? err.message : "unknown"));
+    } catch (error) {
+      alert("Error: " + (error instanceof Error ? error.message : "unknown"));
     }
   };
 
+  const branchChecks = selectedBranch
+    ? checks
+        .filter((check) => check.branch_id === Number.parseInt(selectedBranch, 10))
+        .sort((a, b) => new Date(b.checked_at).getTime() - new Date(a.checked_at).getTime())
+    : [];
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Stock Checks</h1>
-
-      <form onSubmit={handleSubmit} className="bg-white p-4 rounded border border-slate-200 space-y-3">
-        <h2 className="font-semibold text-lg">New Stock Check</h2>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium">Branch *</label>
-            <select
-              required
-              value={form.branch_id}
-              onChange={(e) => handleBranchSelect(e.target.value)}
-              className="w-full px-2 py-1 border border-slate-300 rounded"
-            >
-              <option value="">— Select branch —</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
+    <div className="space-y-8 pb-8">
+      <section className="hero-shell">
+        <div className="crm-card p-7 sm:p-9">
+          <div className="flex flex-wrap gap-2">
+            <span className="data-chip">Stock checks</span>
+            <span className="data-chip data-chip-accent">Expected vs actual</span>
           </div>
+
+          <h1 className="section-title mt-5 max-w-4xl">Count what is really there.</h1>
+          <p className="section-copy mt-5 max-w-2xl">
+            The system suggests what each branch should have. You enter the real count and keep the inventory picture
+            honest.
+          </p>
+
+          <div className="hero-stat-grid mt-8">
+            <div className="stat-tile">
+              <div className="stat-label">Checks logged</div>
+              <div className="stat-value">{checks.length}</div>
+            </div>
+            <div className="stat-tile">
+              <div className="stat-label">Active branches</div>
+              <div className="stat-value">{branches.length}</div>
+            </div>
+            <div className="stat-tile">
+              <div className="stat-label">Tracked flavours</div>
+              <div className="stat-value">{flavours.length}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="photo-card min-h-[360px] sm:min-h-[420px]" style={{ backgroundImage: "url('/imagery/blueberry-single.jpeg')" }}>
+          <div className="absolute inset-x-0 bottom-0 z-10 p-6">
+            <span className="data-chip data-chip-blue">Precise branch counts</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+        <form onSubmit={handleSubmit} className="crm-card p-6 sm:p-8 space-y-5">
           <div>
-            <label className="block text-sm font-medium">Checked Date</label>
-            <input
-              type="date"
-              value={form.checked_at}
-              onChange={(e) => setForm({ ...form, checked_at: e.target.value })}
-              className="w-full px-2 py-1 border border-slate-300 rounded"
+            <div className="eyebrow">New stock check</div>
+            <h2 className="section-subtitle mt-3">Count remaining stock</h2>
+            <p className="section-copy mt-3">Choose a branch first and the expected quantities will load automatically.</p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label>Branch</label>
+              <select required value={form.branch_id} onChange={(event) => handleBranchSelect(event.target.value)}>
+                <option value="">Select branch</option>
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Checked date</label>
+              <input
+                type="date"
+                value={form.checked_at}
+                onChange={(event) => setForm({ ...form, checked_at: event.target.value })}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label>Notes</label>
+            <textarea
+              value={form.notes}
+              onChange={(event) => setForm({ ...form, notes: event.target.value })}
+              placeholder="Optional branch context"
             />
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium">Notes</label>
-          <textarea
-            value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            className="w-full px-2 py-1 border border-slate-300 rounded"
-            rows={2}
-          />
-        </div>
+          {items.length > 0 ? (
+            <div className="soft-panel p-3 sm:p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="eyebrow">Actual remaining</div>
+                <span className="data-chip data-chip-accent">{items.length} flavours</span>
+              </div>
 
-        {items.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium mb-2">Actual Remaining *</label>
-            <table className="w-full border border-slate-300 text-sm">
-              <thead className="bg-slate-100">
-                <tr>
-                  <th className="border border-slate-300 px-2 py-1 text-left">Flavour</th>
-                  <th className="border border-slate-300 px-2 py-1 text-right">Expected</th>
-                  <th className="border border-slate-300 px-2 py-1 text-right">Actual</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.flavour_id}>
-                    <td className="border border-slate-300 px-2 py-1">{item.flavour_name}</td>
-                    <td className="border border-slate-300 px-2 py-1 text-right">
-                      {item.expected} {item.unit}
-                    </td>
-                    <td className="border border-slate-300 px-2 py-1">
-                      <input
-                        type="number"
-                        min="0"
-                        value={item.quantity_remaining}
-                        onChange={(e) => handleItemChange(item.flavour_id, e.target.value)}
-                        placeholder="0"
-                        className="w-full px-1 py-0 border border-slate-300 rounded text-right"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={items.length === 0}
-          className="px-3 py-1 bg-brand text-white rounded hover:bg-brand-dark disabled:bg-slate-300 disabled:cursor-not-allowed"
-        >
-          Save Check
-        </button>
-      </form>
-
-      {selectedBranch && (
-        <div>
-          <h2 className="font-semibold text-lg mb-3">
-            Check History for {branches.find((b) => b.id === parseInt(selectedBranch))?.name}
-          </h2>
-          {loading ? (
-            <p className="text-slate-500">Loading...</p>
+              <div className="mt-4 overflow-x-auto soft-scrollbar">
+                <table className="w-full min-w-[540px]">
+                  <thead className="table-head">
+                    <tr>
+                      <th className="text-left">Flavour</th>
+                      <th className="text-right">Expected</th>
+                      <th className="text-right">Actual</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item) => (
+                      <tr key={item.flavour_id} className="table-row">
+                        <td>
+                          <div className="font-medium">{item.flavour_name}</div>
+                          <div className="mt-1 text-sm text-[rgba(16,19,17,0.46)]">{item.unit}</div>
+                        </td>
+                        <td className="text-right">
+                          {item.expected} {item.unit}
+                        </td>
+                        <td className="text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.quantity_remaining}
+                            onChange={(event) => handleItemChange(item.flavour_id, event.target.value)}
+                            placeholder="0"
+                            className="max-w-[120px] text-right"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           ) : (
-            <div className="space-y-3">
-              {checks
-                .filter((c) => c.branch_id === parseInt(selectedBranch))
-                .sort((a, b) => new Date(b.checked_at).getTime() - new Date(a.checked_at).getTime())
-                .map((check) => (
-                  <div
-                    key={check.id}
-                    className="border border-slate-300 rounded p-3 bg-white"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="text-sm text-slate-600">{check.checked_at}</div>
-                      <button
-                        onClick={() => handleDelete(check.id)}
-                        className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                      >
-                        Delete
-                      </button>
+            <div className="empty-state">Select a branch to load expected quantities.</div>
+          )}
+
+          <button type="submit" disabled={items.length === 0} className={`btn-primary ${items.length === 0 ? "opacity-50" : ""}`}>
+            Save check
+          </button>
+        </form>
+
+        <div className="crm-card p-6 sm:p-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div className="eyebrow">History</div>
+              <h2 className="section-subtitle mt-3">{selectedBranch ? "Branch check history" : "Recent checks"}</h2>
+            </div>
+            {selectedBranch ? (
+              <span className="data-chip data-chip-blue">
+                {branches.find((branch) => branch.id === Number.parseInt(selectedBranch, 10))?.name ?? "Selected branch"}
+              </span>
+            ) : null}
+          </div>
+
+          {loading ? (
+            <div className="empty-state mt-6">Loading stock checks…</div>
+          ) : branchChecks.length === 0 ? (
+            <div className="empty-state mt-6">
+              {selectedBranch ? "No checks for this branch yet." : "Select a branch to view its history."}
+            </div>
+          ) : (
+            <div className="mt-6 space-y-3">
+              {branchChecks.map((check) => (
+                <div key={check.id} className="list-card">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-lg font-semibold tracking-[-0.05em]">{formatDate(check.checked_at)}</div>
+                      <div className="mt-1 text-sm text-[rgba(16,19,17,0.56)]">{check.items.length} counted lines</div>
                     </div>
-                    <table className="w-full text-sm border-collapse">
+                    <button type="button" onClick={() => handleDelete(check.id)} className="btn-danger">
+                      Delete
+                    </button>
+                  </div>
+
+                  <div className="mt-4 overflow-x-auto soft-scrollbar">
+                    <table className="w-full min-w-[420px]">
+                      <thead className="table-head">
+                        <tr>
+                          <th className="text-left">Flavour</th>
+                          <th className="text-right">Remaining</th>
+                        </tr>
+                      </thead>
                       <tbody>
-                        {check.items.map((item, idx) => (
-                          <tr key={idx} className="border-t border-slate-200">
-                            <td className="px-2 py-1">{item.flavour_name}</td>
-                            <td className="px-2 py-1 text-right">
+                        {check.items.map((item, index) => (
+                          <tr key={`${check.id}-${index}`} className="table-row">
+                            <td>{item.flavour_name}</td>
+                            <td className="text-right">
                               {item.quantity_remaining} {item.unit}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                    {check.notes && (
-                      <div className="text-xs text-slate-600 mt-2">
-                        <strong>Notes:</strong> {check.notes}
-                      </div>
-                    )}
                   </div>
-                ))}
+
+                  {check.notes ? <p className="mt-4 text-sm leading-7 text-[rgba(16,19,17,0.58)]">{check.notes}</p> : null}
+                </div>
+              ))}
             </div>
           )}
         </div>
-      )}
+      </section>
     </div>
   );
 }
