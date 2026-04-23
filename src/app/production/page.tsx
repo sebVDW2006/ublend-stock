@@ -178,7 +178,7 @@ export default function ProductionPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn-primary w-full justify-center sm:w-auto">
               Log batch
             </button>
           </div>
@@ -213,7 +213,7 @@ export default function ProductionPage() {
                         <span className="data-chip data-chip-accent">
                           {batch.quantity} {batch.unit}
                         </span>
-                        <button type="button" onClick={() => handleDelete(batch.id)} className="btn-danger">
+                        <button type="button" onClick={() => handleDelete(batch.id)} className="btn-danger w-full justify-center sm:w-auto">
                           Delete
                         </button>
                       </div>

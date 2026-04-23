@@ -209,9 +209,9 @@ export default function DeliveriesPage() {
           </div>
 
           <div>
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
               <label className="mb-0">Items</label>
-              <button type="button" onClick={handleAddItem} className="btn-ghost">
+              <button type="button" onClick={handleAddItem} className="btn-ghost w-full justify-center sm:w-auto">
                 Add item
               </button>
             </div>
@@ -243,7 +243,7 @@ export default function DeliveriesPage() {
                     />
 
                     {form.items.length > 1 ? (
-                      <button type="button" onClick={() => handleRemoveItem(index)} className="btn-danger">
+                      <button type="button" onClick={() => handleRemoveItem(index)} className="btn-danger w-full justify-center sm:w-auto">
                         Remove
                       </button>
                     ) : (
@@ -255,7 +255,7 @@ export default function DeliveriesPage() {
             </div>
           </div>
 
-          <button type="submit" className="btn-primary">
+          <button type="submit" className="btn-primary w-full justify-center sm:w-auto">
             Create delivery
           </button>
         </form>
@@ -284,12 +284,26 @@ export default function DeliveriesPage() {
                         <div className="text-lg font-semibold tracking-[-0.05em]">{delivery.branch_name}</div>
                         <div className="mt-1 text-sm text-[rgba(16,19,17,0.56)]">{formatDate(delivery.delivered_at)}</div>
                       </div>
-                      <button type="button" onClick={() => handleDelete(delivery.id)} className="btn-danger">
+                      <button type="button" onClick={() => handleDelete(delivery.id)} className="btn-danger w-full justify-center sm:w-auto">
                         Delete
                       </button>
                     </div>
 
-                    <div className="mt-4 overflow-x-auto soft-scrollbar">
+                    <div className="mt-4 space-y-3 sm:hidden">
+                      {delivery.items.map((item, index) => (
+                        <div key={`${delivery.id}-mobile-${index}`} className="soft-panel flex items-center justify-between gap-3 p-4">
+                          <div>
+                            <div className="font-medium">{item.flavour_name}</div>
+                            <div className="mt-1 text-sm text-[rgba(16,19,17,0.46)]">{item.unit}</div>
+                          </div>
+                          <div className="text-right font-semibold">
+                            {item.quantity} {item.unit}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 hidden overflow-x-auto soft-scrollbar sm:block">
                       <table className="w-full min-w-[420px]">
                         <thead className="table-head">
                           <tr>

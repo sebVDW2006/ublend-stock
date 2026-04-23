@@ -178,11 +178,11 @@ export default function FlavoursPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn-primary w-full justify-center sm:w-auto">
               {editingId ? "Update flavour" : "Create flavour"}
             </button>
             {editingId ? (
-              <button type="button" onClick={handleCancel} className="btn-secondary">
+              <button type="button" onClick={handleCancel} className="btn-secondary w-full justify-center sm:w-auto">
                 Cancel
               </button>
             ) : null}
@@ -214,11 +214,11 @@ export default function FlavoursPage() {
                         <div className="mt-1 text-sm text-[rgba(16,19,17,0.56)]">{flavour.sku || "No SKU"} </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2">
-                        <button type="button" onClick={() => handleEdit(flavour)} className="btn-secondary">
+                      <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                        <button type="button" onClick={() => handleEdit(flavour)} className="btn-secondary w-full justify-center sm:w-auto">
                           Edit
                         </button>
-                        <button type="button" onClick={() => handleDelete(flavour.id)} className="btn-danger">
+                        <button type="button" onClick={() => handleDelete(flavour.id)} className="btn-danger w-full justify-center sm:w-auto">
                           Archive
                         </button>
                       </div>

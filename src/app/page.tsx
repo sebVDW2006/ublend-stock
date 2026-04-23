@@ -84,13 +84,13 @@ export default function DashboardPage() {
           </p>
 
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link href="/deliveries" className="btn-primary">
+            <Link href="/deliveries" className="btn-primary w-full justify-center sm:w-auto">
               Log delivery
             </Link>
-            <Link href="/stock-checks" className="btn-secondary">
+            <Link href="/stock-checks" className="btn-secondary w-full justify-center sm:w-auto">
               Run stock check
             </Link>
-            <Link href="/production" className="btn-secondary">
+            <Link href="/production" className="btn-secondary w-full justify-center sm:w-auto">
               Add production
             </Link>
           </div>
@@ -167,7 +167,46 @@ export default function DashboardPage() {
                         </span>
                       </div>
 
-                      <div className="mt-4 overflow-x-auto soft-scrollbar">
+                      <div className="mt-4 space-y-3 sm:hidden">
+                        {rows
+                          .sort((a, b) => a.flavour_name.localeCompare(b.flavour_name))
+                          .map((row) => (
+                            <div key={row.flavour_id} className="soft-panel p-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="font-medium">{row.flavour_name}</div>
+                                  <div className="mt-1 text-sm text-[rgba(16,19,17,0.46)]">{row.unit}</div>
+                                </div>
+                                <span className={row.is_low ? "inventory-badge inventory-badge-low" : "inventory-badge inventory-badge-ok"}>
+                                  {row.is_low ? "Low" : "Healthy"}
+                                </span>
+                              </div>
+
+                              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <div className="eyebrow">Estimated</div>
+                                  <div className="mt-2 font-semibold">
+                                    {row.estimated_remaining} {row.unit}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="eyebrow">Delivered</div>
+                                  <div className="mt-2">
+                                    {row.delivered_total} {row.unit}
+                                  </div>
+                                </div>
+                                <div className="col-span-2">
+                                  <div className="eyebrow">Last count</div>
+                                  <div className="mt-2 text-[rgba(16,19,17,0.62)]">
+                                    {row.last_check_remaining === null ? "No manual check yet" : `${row.last_check_remaining} ${row.unit}`}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+
+                      <div className="mt-4 hidden overflow-x-auto soft-scrollbar sm:block">
                         <table className="w-full min-w-[560px]">
                           <thead className="table-head">
                             <tr>

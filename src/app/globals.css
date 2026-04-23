@@ -410,6 +410,72 @@
     border-radius: 999px;
   }
 
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (max-width: 639px) {
+    .page-wrap {
+      padding: 1rem 0.85rem 2rem;
+    }
+
+    .crm-card {
+      border-radius: 24px;
+    }
+
+    .list-card,
+    .soft-panel,
+    .stat-tile,
+    .empty-state {
+      border-radius: 20px;
+    }
+
+    .photo-card,
+    .page-hero {
+      min-height: 220px;
+      border-radius: 24px;
+    }
+
+    .section-title {
+      font-size: clamp(2.2rem, 12vw, 3.2rem);
+      line-height: 0.96;
+      letter-spacing: -0.075em;
+    }
+
+    .section-subtitle {
+      font-size: clamp(1.45rem, 8vw, 2rem);
+    }
+
+    .section-copy {
+      font-size: 0.96rem;
+      line-height: 1.7;
+    }
+
+    .stat-value {
+      font-size: 1.7rem;
+    }
+
+    .data-chip {
+      padding: 0.42rem 0.68rem;
+      font-size: 0.66rem;
+    }
+
+    .btn-primary,
+    .btn-secondary,
+    .btn-ghost,
+    .btn-danger {
+      min-height: 48px;
+      padding-left: 1rem;
+      padding-right: 1rem;
+      font-size: 0.7rem;
+    }
+  }
+
   @media (min-width: 768px) {
     .page-wrap {
       padding-left: 1.5rem;

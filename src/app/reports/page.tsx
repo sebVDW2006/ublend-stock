@@ -168,7 +168,18 @@ export default function ReportsPage() {
                     .map(([month, rows]) => (
                       <div key={month} className="list-card">
                         <div className="text-lg font-semibold tracking-[-0.05em]">{month}</div>
-                        <div className="mt-4 overflow-x-auto soft-scrollbar">
+                        <div className="mt-4 space-y-3 sm:hidden">
+                          {rows
+                            .sort((a, b) => a.flavour_name.localeCompare(b.flavour_name))
+                            .map((row, index) => (
+                              <div key={`${month}-mobile-${index}`} className="soft-panel flex items-center justify-between gap-3 p-4">
+                                <div className="font-medium">{row.flavour_name}</div>
+                                <div className="text-right font-semibold">{row.delivered}</div>
+                              </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-4 hidden overflow-x-auto soft-scrollbar sm:block">
                           <table className="w-full min-w-[340px]">
                             <thead className="table-head">
                               <tr>
@@ -208,7 +219,24 @@ export default function ReportsPage() {
                       <div key={branchId} className="list-card">
                         <div className="text-lg font-semibold tracking-[-0.05em]">{branch_name}</div>
 
-                        <div className="mt-4 overflow-x-auto soft-scrollbar">
+                        <div className="mt-4 space-y-3 sm:hidden">
+                          {rows
+                            .filter((row) => row.total_delivered > 0)
+                            .sort((a, b) => a.flavour_name.localeCompare(b.flavour_name))
+                            .map((row, index) => (
+                              <div key={`${branchId}-mobile-${index}`} className="soft-panel flex items-center justify-between gap-3 p-4">
+                                <div>
+                                  <div className="font-medium">{row.flavour_name}</div>
+                                  <div className="mt-1 text-sm text-[rgba(16,19,17,0.46)]">{row.unit}</div>
+                                </div>
+                                <div className="text-right font-semibold">
+                                  {row.total_delivered} {row.unit}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-4 hidden overflow-x-auto soft-scrollbar sm:block">
                           <table className="w-full min-w-[340px]">
                             <thead className="table-head">
                               <tr>

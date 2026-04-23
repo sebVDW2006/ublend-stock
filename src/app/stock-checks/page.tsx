@@ -261,7 +261,34 @@ export default function StockChecksPage() {
                 <span className="data-chip data-chip-accent">{items.length} flavours</span>
               </div>
 
-              <div className="mt-4 overflow-x-auto soft-scrollbar">
+              <div className="mt-4 space-y-3 sm:hidden">
+                {items.map((item) => (
+                  <div key={item.flavour_id} className="soft-panel p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-medium">{item.flavour_name}</div>
+                        <div className="mt-1 text-sm text-[rgba(16,19,17,0.46)]">{item.unit}</div>
+                      </div>
+                      <span className="data-chip data-chip-blue">
+                        {item.expected} {item.unit}
+                      </span>
+                    </div>
+
+                    <div className="mt-4">
+                      <label>Actual remaining</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={item.quantity_remaining}
+                        onChange={(event) => handleItemChange(item.flavour_id, event.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 hidden overflow-x-auto soft-scrollbar sm:block">
                 <table className="w-full min-w-[540px]">
                   <thead className="table-head">
                     <tr>
@@ -300,7 +327,7 @@ export default function StockChecksPage() {
             <div className="empty-state">Select a branch to load expected quantities.</div>
           )}
 
-          <button type="submit" disabled={items.length === 0} className={`btn-primary ${items.length === 0 ? "opacity-50" : ""}`}>
+          <button type="submit" disabled={items.length === 0} className={`btn-primary w-full justify-center sm:w-auto ${items.length === 0 ? "opacity-50" : ""}`}>
             Save check
           </button>
         </form>
@@ -333,12 +360,26 @@ export default function StockChecksPage() {
                       <div className="text-lg font-semibold tracking-[-0.05em]">{formatDate(check.checked_at)}</div>
                       <div className="mt-1 text-sm text-[rgba(16,19,17,0.56)]">{check.items.length} counted lines</div>
                     </div>
-                    <button type="button" onClick={() => handleDelete(check.id)} className="btn-danger">
+                    <button type="button" onClick={() => handleDelete(check.id)} className="btn-danger w-full justify-center sm:w-auto">
                       Delete
                     </button>
                   </div>
 
-                  <div className="mt-4 overflow-x-auto soft-scrollbar">
+                  <div className="mt-4 space-y-3 sm:hidden">
+                    {check.items.map((item, index) => (
+                      <div key={`${check.id}-mobile-${index}`} className="soft-panel flex items-center justify-between gap-3 p-4">
+                        <div>
+                          <div className="font-medium">{item.flavour_name}</div>
+                          <div className="mt-1 text-sm text-[rgba(16,19,17,0.46)]">{item.unit}</div>
+                        </div>
+                        <div className="text-right font-semibold">
+                          {item.quantity_remaining} {item.unit}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 hidden overflow-x-auto soft-scrollbar sm:block">
                     <table className="w-full min-w-[420px]">
                       <thead className="table-head">
                         <tr>
