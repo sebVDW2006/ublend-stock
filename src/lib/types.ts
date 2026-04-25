@@ -61,6 +61,16 @@ export type StockCheckItem = {
   quantity_remaining: number;
 };
 
+export type FuelFillUp = {
+  id: number;
+  filled_at: string;
+  total_cost_pence: number;
+  notes: string | null;
+  receipt_image_data_url: string | null;
+  receipt_image_name: string | null;
+  created_at: string;
+};
+
 // Derived view types used by the dashboard / reports
 
 export type BranchStockRow = {

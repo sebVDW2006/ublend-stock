@@ -83,6 +83,21 @@ CREATE TABLE IF NOT EXISTS stock_check_items (
 );
 
 -- ============================================================================
+-- fuel_fill_ups: petrol fill-up log for the vehicle
+-- Receipt images are stored as data URLs so the feature works without
+-- introducing a separate object storage dependency.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS fuel_fill_ups (
+  id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+  filled_at               TEXT    NOT NULL,
+  total_cost_pence        INTEGER NOT NULL CHECK (total_cost_pence >= 0),
+  notes                   TEXT,
+  receipt_image_data_url  TEXT,
+  receipt_image_name      TEXT,
+  created_at              TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ============================================================================
 -- indexes
 -- ============================================================================
 CREATE INDEX IF NOT EXISTS idx_delivery_items_delivery     ON delivery_items(delivery_id);
@@ -92,3 +107,4 @@ CREATE INDEX IF NOT EXISTS idx_stock_check_items_flavour   ON stock_check_items(
 CREATE INDEX IF NOT EXISTS idx_deliveries_branch_date      ON deliveries(branch_id, delivered_at);
 CREATE INDEX IF NOT EXISTS idx_stock_checks_branch_date    ON stock_checks(branch_id, checked_at);
 CREATE INDEX IF NOT EXISTS idx_production_flavour_date     ON production_batches(flavour_id, produced_at);
+CREATE INDEX IF NOT EXISTS idx_fuel_fill_ups_date          ON fuel_fill_ups(filled_at);

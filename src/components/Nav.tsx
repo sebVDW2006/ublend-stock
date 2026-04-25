@@ -8,6 +8,7 @@ const links = [
   { href: "/production", label: "Production" },
   { href: "/deliveries", label: "Deliveries" },
   { href: "/stock-checks", label: "Stock checks" },
+  { href: "/fuel", label: "Fuel log" },
   { href: "/branches", label: "Branches" },
   { href: "/flavours", label: "Flavours" },
   { href: "/reports", label: "Reports" },

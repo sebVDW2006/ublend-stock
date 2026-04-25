@@ -90,6 +90,9 @@ export default function DashboardPage() {
             <Link href="/stock-checks" className="btn-secondary w-full justify-center sm:w-auto">
               Run stock check
             </Link>
+            <Link href="/fuel" className="btn-secondary w-full justify-center sm:w-auto">
+              Log fuel
+            </Link>
             <Link href="/production" className="btn-secondary w-full justify-center sm:w-auto">
               Add production
             </Link>
@@ -273,6 +276,10 @@ export default function DashboardPage() {
               <Link href="/reports" className="list-card">
                 <div className="text-lg font-semibold tracking-[-0.04em]">Reports</div>
                 <p className="mt-2 text-sm leading-7 text-[rgba(16,19,17,0.58)]">See movement, sell-through, and demand patterns.</p>
+              </Link>
+              <Link href="/fuel" className="list-card">
+                <div className="text-lg font-semibold tracking-[-0.04em]">Fuel log</div>
+                <p className="mt-2 text-sm leading-7 text-[rgba(16,19,17,0.58)]">Track petrol fill-ups, total spend, and receipt images.</p>
               </Link>
             </div>
           </div>
