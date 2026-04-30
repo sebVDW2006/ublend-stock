@@ -22,7 +22,7 @@ export function Nav() {
       <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-3 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="text-[1.9rem] font-semibold tracking-[-0.08em] text-[#101311]">
-            uBlend Stock
+            uBlend stock
           </Link>
           <span className="data-chip data-chip-accent hidden md:inline-flex">Inventory CRM</span>
         </div>

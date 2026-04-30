@@ -1,6 +1,6 @@
 {
-  "name": "uBlend Stock",
-  "short_name": "uBlend",
+  "name": "uBlend stock",
+  "short_name": "uBlend stock",
   "description": "Stock take, production and delivery tracking for uBlend",
   "start_url": "/",
   "display": "standalone",

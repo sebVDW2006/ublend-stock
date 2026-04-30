@@ -4,13 +4,21 @@ import { Nav } from "@/components/Nav";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
-  title: "uBlend Stock",
+  title: "uBlend stock",
   description: "Stock take, production and delivery tracking for uBlend",
+  applicationName: "uBlend stock",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "uBlend Stock",
+    title: "uBlend stock",
+  },
+  icons: {
+    apple: "/icons/icon-192.png",
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
   },
 };
 
